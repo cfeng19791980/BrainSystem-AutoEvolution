@@ -1,0 +1,17 @@
+{
+  "decision_threshold": {
+    "min_context": 2,
+    "min_confidence": 0.4,
+    "fallback_action": "ask_user"
+  },
+  "knowledge_boost": {
+    "graph_weight": 1.5,
+    "vector_weight": 1.2,
+    "keyword_weight": 1.0
+  },
+  "auto_learn_threshold": {
+    "context_low": 2,
+    "confidence_low": 0.5
+  },
+  "success_rate_target": 0.7
+}

@@ -1,0 +1,21 @@
+{
+  "test_time": "2026-04-20T17:16:14.282163",
+  "tests_passed": 4,
+  "tests_total": 5,
+  "performance": {
+    "tasks_per_second": 169.8,
+    "success_rate": 98.0,
+    "memory_kb": 80.0
+  },
+  "dag_stats": {
+    "total": 100,
+    "completed": 98,
+    "failed": 2
+  },
+  "rl_stats": {
+    "policy_size": 5,
+    "avg_reward": 0.95
+  },
+  "p1_score": 90,
+  "production_ready": true
+}

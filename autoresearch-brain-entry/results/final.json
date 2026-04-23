@@ -1,0 +1,12 @@
+{
+  "avg_time_ms": 188.59579828050403,
+  "intent_accuracy": 0.7171717171717171,
+  "correct_intents": 71,
+  "total_cases": 99,
+  "score": 38.70963628845985,
+  "optimizations": [
+    "embedding_cache_1000",
+    "flow_templates_+5_types",
+    "brain_patterns_+11_keywords"
+  ]
+}

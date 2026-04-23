@@ -1,0 +1,13 @@
+{
+  "stats": {
+    "date": "2026-04-21",
+    "total_events": 0,
+    "accepted_count": 0,
+    "overall_accept_rate": 0,
+    "by_intent_type": {},
+    "by_confidence_level": {},
+    "generated_at": "2026-04-22T16:25:20.784134"
+  },
+  "recommendations": [],
+  "generated_at": "2026-04-22T16:25:20.784134"
+}

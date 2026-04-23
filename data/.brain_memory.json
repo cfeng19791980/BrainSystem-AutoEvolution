@@ -1,0 +1,1 @@
+{"structure": "split", "files": {"short": ".brain_short.json", "long_fact": ".brain_long_fact.json", "long_preference": ".brain_long_preference.json"}, "migration_date": "2026-04-20T16:42:32.929720", "note": "Memory files have been split for better performance"}

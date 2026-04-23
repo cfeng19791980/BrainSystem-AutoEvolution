@@ -1,0 +1,42 @@
+{
+  "test_time": "2026-04-20T17:24:14.974103",
+  "total_decisions": 110,
+  "tasks": {
+    "1_simple_query": {
+      "action": "search",
+      "success": true
+    },
+    "2_complex_analysis": {
+      "action": "search",
+      "recalled": 1
+    },
+    "3_failure_retry": {
+      "first": false,
+      "retry": true
+    },
+    "4_knowledge_recall": {
+      "recalled": 1
+    },
+    "5_context_pressure": {
+      "overflow": true,
+      "handled": true
+    }
+  },
+  "system": {
+    "decisions": 110,
+    "context": 100,
+    "rl_policy": {
+      "direct": 0.82,
+      "search": 0.6,
+      "tool": 0.4
+    },
+    "rules": 4,
+    "lessons": 1
+  },
+  "evaluation": {
+    "decision_quality": "优秀",
+    "rl_feedback": "完整闭环",
+    "context_management": "自动压缩",
+    "overall_score": 92
+  }
+}

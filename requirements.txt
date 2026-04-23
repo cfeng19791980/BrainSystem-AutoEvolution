@@ -1,0 +1,46 @@
+# BrainSystem-AutoEvolution Requirements
+# Python 3.8+ recommended
+
+# Core dependencies
+numpy>=1.19.0
+pandas>=1.2.0
+sqlite3  # Built-in Python library
+
+# Vector search and embeddings
+requests>=2.25.0  # For NVIDIA embedding API calls
+urllib3>=1.26.0
+
+# Knowledge graph
+jsonschema>=3.2.0  # For JSON validation
+
+# Performance optimization
+functools  # Built-in Python library
+time  # Built-in Python library
+datetime  # Built-in Python library
+
+# Logging and monitoring
+logging  # Built-in Python library
+json  # Built-in Python library
+
+# Optional: For web server mode
+flask>=2.0.0  # Optional, for REST API server
+flask-cors>=3.0.8  # Optional, for CORS support
+
+# Optional: For advanced features
+networkx>=2.5  # Optional, for graph visualization
+matplotlib>=3.3.0  # Optional, for performance charts
+seaborn>=0.11.0  # Optional, for statistical visualization
+
+# Development dependencies (optional)
+pytest>=6.0.0  # Optional, for testing
+black>=21.0  # Optional, for code formatting
+flake8>=3.9.0  # Optional, for linting
+
+# Note: Most dependencies are built-in Python libraries
+# Only install optional dependencies if needed
+
+# Minimal installation:
+# pip install numpy pandas requests flask
+
+# Full installation:
+# pip install -r requirements.txt

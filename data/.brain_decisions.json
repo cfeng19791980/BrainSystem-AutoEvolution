@@ -1,0 +1,102 @@
+{
+  "decisions": [
+    {
+      "id": "dec_1776675485496_zsyagk",
+      "timestamp": "2026-04-20T08:58:05.502Z",
+      "input": "如何优化Python代码性能？",
+      "steps": {
+        "1_perception": {
+          "inputLength": 15,
+          "hasChinese": true,
+          "hasQuestion": true,
+          "keywords": [
+            "如何优化Python代码性能？"
+          ]
+        },
+        "2_intent": {
+          "primary": "query",
+          "all": [
+            "query",
+            "code",
+            "learn"
+          ],
+          "confidence": 0.8
+        },
+        "3_recall": {
+          "short": 0,
+          "long": 5
+        },
+        "4_reasoning": {
+          "thought": "Thought: 需要分析意图并选择最佳行动路径",
+          "chain": [
+            "Observation: 用户提问 '如何优化Python代码性能？...'",
+            "Memory: 找到5条相关记忆",
+            "  - * `python3.9`\n* `python3.9-slim`\n* `python3.8`\n* `python3.8-slim`\n* `python3.7`\n...",
+            "  - * `python3.9-2025-11-09`\n* `python3.9-slim-2025-11-09`\n* `python3.8-2024-11-02`\n...",
+            "Thought: 需要分析意图并选择最佳行动路径"
+          ],
+          "memoryUsed": 5
+        },
+        "5_plans": [
+          "B",
+          "A",
+          "C"
+        ],
+        "6_selected": {
+          "selected_plan": {
+            "plan_id": "B",
+            "type": "tool_call",
+            "description": "调用工具获取信息",
+            "confidence": 0.8,
+            "requiresTools": true,
+            "suggestedTools": [
+              "search",
+              "execute"
+            ]
+          },
+          "confidence": 0.8,
+          "reason": "选择方案B: 调用工具获取信息"
+        },
+        "7_execution": {
+          "action": "Action: 执行 tool_call",
+          "plan": {
+            "plan_id": "B",
+            "type": "tool_call",
+            "description": "调用工具获取信息",
+            "confidence": 0.8,
+            "requiresTools": true,
+            "suggestedTools": [
+              "search",
+              "execute"
+            ]
+          },
+          "status": "ready"
+        },
+        "8_feedback_prep": {
+          "decisionId": "dec_1776675485496_zsyagk",
+          "feedbackRequired": true,
+          "metrics": [
+            "success",
+            "userSatisfaction",
+            "timeTaken"
+          ]
+        }
+      },
+      "thought": "Thought: 需要分析意图并选择最佳行动路径",
+      "action": "Action: 执行 tool_call",
+      "confidence": 0.8,
+      "plan": {
+        "plan_id": "B",
+        "type": "tool_call",
+        "description": "调用工具获取信息",
+        "confidence": 0.8,
+        "requiresTools": true,
+        "suggestedTools": [
+          "search",
+          "execute"
+        ]
+      }
+    }
+  ],
+  "total": 1
+}

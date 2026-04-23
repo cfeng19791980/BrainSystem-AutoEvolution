@@ -1,0 +1,21 @@
+{
+  "test_time": "2026-04-20T17:12:53.734440",
+  "p1_tasks": {
+    "dag_dependency": {
+      "status": "PASS",
+      "score": 5
+    },
+    "reinforcement_learning": {
+      "status": "PASS",
+      "score": 5
+    }
+  },
+  "final_score": 90,
+  "features": {
+    "DAG任务依赖": "✓ (+5分)",
+    "强化学习闭环": "✓ (+5分)",
+    "断点续跑": "✓",
+    "成功规则提取": "✓",
+    "失败反思机制": "✓"
+  }
+}

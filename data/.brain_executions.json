@@ -1,0 +1,42 @@
+[
+  {
+    "decision_id": "d_5e185ae9",
+    "result": {
+      "success": true,
+      "output": "已解决",
+      "error": null
+    },
+    "success_rate": 1.0,
+    "timestamp": "2026-04-20T01:20:00.175153"
+  },
+  {
+    "decision_id": "d_151c7a54",
+    "result": {
+      "success": true,
+      "output": "已解决",
+      "error": null
+    },
+    "success_rate": 1.0,
+    "timestamp": "2026-04-20T01:20:00.191736"
+  },
+  {
+    "decision_id": "d_95d7d6ec",
+    "result": {
+      "success": false,
+      "output": "知识不足",
+      "error": "知识不足"
+    },
+    "success_rate": 0.0,
+    "timestamp": "2026-04-20T01:20:00.208768"
+  },
+  {
+    "decision_id": "d_6f3797b8",
+    "result": {
+      "success": false,
+      "output": "执行错误",
+      "error": "执行错误"
+    },
+    "success_rate": 0.0,
+    "timestamp": "2026-04-20T01:20:03.386283"
+  }
+]

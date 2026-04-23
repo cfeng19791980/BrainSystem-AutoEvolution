@@ -1,0 +1,388 @@
+{
+  "nodes": {
+    "embedding_cache": {
+      "type": "performance",
+      "name": "Embedding缓存",
+      "effect": "-97% latency (146ms→0ms)",
+      "prerequisites": [
+        "embedding_model"
+      ],
+      "applicable_to": [
+        "vector_search",
+        "semantic_matching"
+      ],
+      "source": "experiment_5",
+      "status": "active"
+    },
+    "result_cache": {
+      "type": "performance",
+      "name": "结果缓存",
+      "effect": "-99.2% response (207ms→1.4ms)",
+      "prerequisites": [
+        "embedding_cache"
+      ],
+      "applicable_to": [
+        "api_response",
+        "intent_recognition"
+      ],
+      "source": "experiment_9",
+      "status": "active"
+    },
+    "hot_cache": {
+      "type": "performance",
+      "name": "热数据缓存",
+      "effect": "5min TTL高频数据常驻内存",
+      "prerequisites": [
+        "result_cache"
+      ],
+      "applicable_to": [
+        "frequent_queries"
+      ],
+      "source": "豆包建议P3",
+      "status": "active"
+    },
+    "normalize_keywords": {
+      "type": "accuracy",
+      "name": "语义归一化",
+      "effect": "+95% cache_hit率",
+      "prerequisites": [
+        "result_cache"
+      ],
+      "applicable_to": [
+        "intent_matching"
+      ],
+      "source": "豆包建议P0",
+      "status": "active"
+    },
+    "flow_templates": {
+      "type": "accuracy",
+      "name": "FLOW_TEMPLATES扩展",
+      "effect": "+17pp准确率",
+      "prerequisites": [],
+      "applicable_to": [
+        "intent_detection"
+      ],
+      "source": "experiment_6",
+      "status": "active"
+    },
+    "brain_patterns": {
+      "type": "accuracy",
+      "name": "brain_patterns扩展",
+      "effect": "+10pp准确率",
+      "prerequisites": [
+        "flow_templates"
+      ],
+      "applicable_to": [
+        "keyword_matching"
+      ],
+      "source": "experiment_7",
+      "status": "active"
+    },
+    "composite_patterns": {
+      "type": "accuracy",
+      "name": "复合关键词匹配",
+      "effect": "解决关键词重叠冲突",
+      "prerequisites": [
+        "brain_patterns"
+      ],
+      "applicable_to": [
+        "conflict_resolution"
+      ],
+      "source": "experiment_11",
+      "status": "active"
+    },
+    "exact_priority": {
+      "type": "accuracy",
+      "name": "精确匹配优先",
+      "effect": "修复debug→fix误判",
+      "prerequisites": [
+        "flow_templates"
+      ],
+      "applicable_to": [
+        "intent_priority"
+      ],
+      "source": "experiment_10",
+      "status": "active"
+    },
+    "pattern_auto_collect": {
+      "type": "evolution",
+      "name": "Pattern自动沉淀",
+      "effect": "高频指令自动收集",
+      "prerequisites": [
+        "brain_patterns"
+      ],
+      "applicable_to": [
+        "self_improvement"
+      ],
+      "source": "豆包建议P1",
+      "status": "active"
+    },
+    "quality_scoring": {
+      "type": "evolution",
+      "name": "执行质量打分",
+      "effect": "自动评估任务质量",
+      "prerequisites": [],
+      "applicable_to": [
+        "feedback_loop"
+      ],
+      "source": "豆包建议P2",
+      "status": "active"
+    },
+    "dirty_cache_cleanup": {
+      "type": "evolution",
+      "name": "脏缓存清洗",
+      "effect": "自动清理低质量缓存",
+      "prerequisites": [
+        "result_cache"
+      ],
+      "applicable_to": [
+        "cache_health"
+      ],
+      "source": "豆包建议P4",
+      "status": "active"
+    },
+    "model_cache": {
+      "type": "csi10",
+      "name": "模型缓存",
+      "effect": "-66.5% training (7.6s→2.6s)",
+      "prerequisites": [
+        "sklearn"
+      ],
+      "applicable_to": [
+        "stock_analysis"
+      ],
+      "source": "csi10优化",
+      "status": "active"
+    },
+    "feature_extension": {
+      "type": "csi10",
+      "name": "特征扩展",
+      "effect": "+140%维度 (5→12)",
+      "prerequisites": [
+        "model_cache"
+      ],
+      "applicable_to": [
+        "ml_features"
+      ],
+      "source": "csi10优化",
+      "status": "active"
+    },
+    "adaptive_threshold": {
+      "type": "csi10",
+      "name": "自适应持仓管理",
+      "effect": "动态阈值策略",
+      "prerequisites": [
+        "feature_extension"
+      ],
+      "applicable_to": [
+        "portfolio_management"
+      ],
+      "source": "csi10优化",
+      "status": "active"
+    },
+    "exp_10_priority": {
+      "type": "experiment",
+      "name": "意图优先级系统\n目标：解决关键词重叠导致的误判",
+      "exp_id": "10_priority",
+      "conclusion": "PENDING",
+      "metrics": {},
+      "derived_methods": [],
+      "lifecycle": "PENDING",
+      "file": "experiment_10_priority.py"
+    },
+    "exp_12_api_test": {
+      "type": "experiment",
+      "name": "真实API性能测试\n通过HTTP调用测试缓存效果",
+      "exp_id": "12_api_test",
+      "conclusion": "PENDING",
+      "metrics": {},
+      "derived_methods": [],
+      "lifecycle": "PENDING",
+      "file": "experiment_12_api_test.py"
+    },
+    "exp_1_cache": {
+      "type": "experiment",
+      "name": "添加LRU缓存到analyze_intent\n目标: 减少重复计算的响应时间",
+      "exp_id": "1_cache",
+      "conclusion": "KEEP",
+      "metrics": {},
+      "derived_methods": [],
+      "lifecycle": "VALID",
+      "file": "experiment_1_cache.py"
+    },
+    "exp_2_bottleneck": {
+      "type": "experiment",
+      "name": "分析性能瓶颈\n找出哪个步骤最耗时",
+      "exp_id": "2_bottleneck",
+      "conclusion": "PENDING",
+      "metrics": {},
+      "derived_methods": [],
+      "lifecycle": "PENDING",
+      "file": "experiment_2_bottleneck.py"
+    },
+    "exp_3_deep": {
+      "type": "experiment",
+      "name": "优化search_memory\n策略：FTS预筛选 + embedding缓存",
+      "exp_id": "3_deep",
+      "conclusion": "PENDING",
+      "metrics": {},
+      "derived_methods": [],
+      "lifecycle": "PENDING",
+      "file": "experiment_3_deep.py"
+    },
+    "exp_5_cache": {
+      "type": "experiment",
+      "name": "实现embedding缓存\n目标：对相同query缓存embedding结果，减少重复计算",
+      "exp_id": "5_cache",
+      "conclusion": "KEEP",
+      "metrics": {},
+      "derived_methods": [],
+      "lifecycle": "VALID",
+      "file": "experiment_5_cache.py"
+    },
+    "exp_6_intent": {
+      "type": "experiment",
+      "name": "分析意图识别准确率低的原因",
+      "exp_id": "6_intent",
+      "conclusion": "PENDING",
+      "metrics": {},
+      "derived_methods": [],
+      "lifecycle": "PENDING",
+      "file": "experiment_6_intent.py"
+    },
+    "exp_7_brain": {
+      "type": "experiment",
+      "name": "优化brain_command识别",
+      "exp_id": "7_brain",
+      "conclusion": "PENDING",
+      "metrics": {
+        "improvements": [
+          "2"
+        ]
+      },
+      "derived_methods": [],
+      "lifecycle": "PENDING",
+      "file": "experiment_7_brain.py"
+    },
+    "exp_8_evolution": {
+      "type": "experiment",
+      "name": "分析剩余优化空间",
+      "exp_id": "8_evolution",
+      "conclusion": "PENDING",
+      "metrics": {
+        "improvements": [
+          "20",
+          "20",
+          "8"
+        ],
+        "before_ms": 9,
+        "after_ms": 5
+      },
+      "derived_methods": [],
+      "lifecycle": "PENDING",
+      "file": "experiment_8_evolution.py"
+    },
+    "exp_9_result_cache": {
+      "type": "experiment",
+      "name": "结果缓存\n目标：缓存完整API响应，实现二次访问5ms响应",
+      "exp_id": "9_result_cache",
+      "conclusion": "KEEP",
+      "metrics": {},
+      "derived_methods": [],
+      "lifecycle": "VALID",
+      "file": "experiment_9_result_cache.py"
+    }
+  },
+  "edges": [
+    {
+      "from": "embedding_cache",
+      "to": "result_cache",
+      "relation": "DEPENDS_ON",
+      "desc": "结果缓存依赖embedding缓存命中率"
+    },
+    {
+      "from": "result_cache",
+      "to": "normalize_keywords",
+      "relation": "ENHANCES",
+      "desc": "归一化提升缓存命中率"
+    },
+    {
+      "from": "result_cache",
+      "to": "hot_cache",
+      "relation": "ENHANCES",
+      "desc": "热数据分层提升稳定性"
+    },
+    {
+      "from": "result_cache",
+      "to": "dirty_cache_cleanup",
+      "relation": "MAINTAINS",
+      "desc": "脏数据清洗保障质量"
+    },
+    {
+      "from": "flow_templates",
+      "to": "brain_patterns",
+      "relation": "DEPENDS_ON",
+      "desc": "patterns扩展基于templates"
+    },
+    {
+      "from": "brain_patterns",
+      "to": "composite_patterns",
+      "relation": "EXTENDS",
+      "desc": "复合关键词解决冲突"
+    },
+    {
+      "from": "flow_templates",
+      "to": "exact_priority",
+      "relation": "FIXES",
+      "desc": "精确匹配修复误判"
+    },
+    {
+      "from": "brain_patterns",
+      "to": "pattern_auto_collect",
+      "relation": "EVOLVES",
+      "desc": "自动沉淀进化"
+    },
+    {
+      "from": "model_cache",
+      "to": "feature_extension",
+      "relation": "DEPENDS_ON",
+      "desc": "特征扩展需要模型"
+    },
+    {
+      "from": "feature_extension",
+      "to": "adaptive_threshold",
+      "relation": "DEPENDS_ON",
+      "desc": "自适应策略基于特征"
+    }
+  ],
+  "node_types": [
+    "optimization",
+    "experiment",
+    "module",
+    "knowledge"
+  ],
+  "categories": [
+    "performance",
+    "accuracy",
+    "evolution",
+    "csi10"
+  ],
+  "relations": [
+    "DEPENDS_ON",
+    "ENHANCES",
+    "EXTENDS",
+    "FIXES",
+    "EVOLVES",
+    "MAINTAINS",
+    "ALTERNATIVE_TO",
+    "SUPERSEDED_BY",
+    "COOPERATE_WITH",
+    "DERIVED_FROM"
+  ],
+  "lifecycle_states": [
+    "VALID",
+    "OBSOLETE",
+    "DISCARDED",
+    "PENDING"
+  ]
+}
