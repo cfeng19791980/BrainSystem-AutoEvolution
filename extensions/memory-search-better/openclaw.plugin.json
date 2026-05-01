@@ -1,0 +1,10 @@
+{
+  "id": "memory-search-better",
+  "name": "Memory Search Better",
+  "description": "增强记忆搜索工具，直接全文搜索 memory/ 和 wiki/ 目录下的 .md 文件",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

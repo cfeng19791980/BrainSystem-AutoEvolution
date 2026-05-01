@@ -1,0 +1,24 @@
+{
+  "version": "V7.6.5",
+  "title": "FlowWork执行器激活升级 - 模板补充+执行调度",
+  "date": "2026-05-01",
+  "time": "22:01",
+  "previous_version": "V7.6.4",
+  "backup_path": "C:\\Users\\Administrator\\.openclaw\\backups\\flowwork_fix_20260501_220157",
+  "changes": [
+    "1. FLOW_WORK_TEMPLATES 从 4 个 action 扩充到 12 个",
+    "   新增: query_knowledge / generate_code / fix_bug / debug_analysis / optimize_code / learn_topic / brain_command / browser_action",
+    "2. /entry 端点中 trigger 成功后主动调用 execute_flow_workflow",
+    "   即: trigger + execute 从两步手动变一步自动",
+    "3. 响应新增 flow_execution 字段"
+  ],
+  "known_limitations": [
+    "execute_flow_step 对新增模板的部分自定义 step name 不识别，会标记为 skipped",
+    "不影响整体执行和日志，not a bug, just empty handlers"
+  ],
+  "verified": {
+    "syntax_check": true,
+    "all_actions_mapped": true,
+    "12_templates_12_actions": true
+  }
+}

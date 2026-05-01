@@ -1,139 +1,50 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# -*- coding: utf-8 -*-
+# SQLite 数据库文件（运行时生成，每个机器不同）
+data/.brain_*.db
+data/.bge_*.db
+data/.amp_*.db
+data/.changelog_*.db
+data/.discussion_*.db
+data/.evolution_*.db
+data/.intent_*.db
+data/.issue_*.db
+data/.pr_*.db
+data/.self_*.db
+data/.skill_*.db
+data/.tool_*.db
+data/.active_*.db
+data/brain.db
 
-# C extensions
-*.so
+# 临时和运行状态文件
+.brain.pid
+data/.provider_state.json
+data/.trigger_state.json
+data/*.json
+data/.learnings/
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# celery beat schedule file
-celerybeat-schedule
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-
-# IDE settings
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# BrainSystem specific
-data/.brain_patterns.db-journal
-logs/*.log
+# 备份文件
+core/*.backup
+core/*.bak*
+core/*_backup.py
 backups/
-temp/
-*.tmp
-*.temp
-*_backup_*
-*.bak
 
-# Sensitive data (keep examples only)
-data/experiments/*.py
-data/knowledge_base/*.json
+# 临时文件
+tmp_*.py
+tmp_*.json
+tmp_*.txt
 
-# NVIDIA API keys (DO NOT COMMIT)
-.env.local
-secrets/
-*.key
-*_secret.*
+# Windows
+*.bat
+*.exe
 
-# Test outputs
-test_outputs/
-debug_*.json
-temp_*.json
+# Python缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# Node
+node_modules/
+
+# 系统和编辑器
+.DS_Store
+Thumbs.db

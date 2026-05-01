@@ -1,0 +1,10 @@
+{
+  "id": "code-reader",
+  "name": "Code Reader",
+  "description": "代码文件全量读取工具，支持行号、编码检测、多文件和通配符匹配",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

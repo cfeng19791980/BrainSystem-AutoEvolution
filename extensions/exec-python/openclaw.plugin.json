@@ -1,0 +1,10 @@
+{
+  "id": "exec-python",
+  "name": "Exec Python",
+  "description": "Python 代码执行工具，直接执行 Python 代码字符串并返回结果",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
