@@ -32,6 +32,7 @@ from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from pathlib import Path
 import numpy as np
+import urllib.request
 
 # ============================================================
 # Custom JSON Encoder for numpy types
@@ -52,7 +53,7 @@ class NumpyEncoder(json.JSONEncoder):
 # ============================================================
 # 日志配置
 # ============================================================
-LOG_DIR = "C:/Users/Administrator/.openclaw/logs"
+LOG_DIR = "C:/Users/10341/.openclaw/logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
 logging.basicConfig(
@@ -70,22 +71,22 @@ logger = logging.getLogger('BrainEntry')
 # ============================================================
 BRAIN_CONFIG = {
     # Brain System 集中目录 (2026-04-22)
-    "brain_root": "C:/Users/Administrator/.openclaw/brain-system",
-    "memory_db": "C:/Users/Administrator/.openclaw/brain-system/data/.brain_vectors.db",
-    "memory_dir": "C:/Users/Administrator/.openclaw/workspace-工程师/memory",  # 保留原位置（共享memory）
-    "knowledge_dir": "C:/Users/Administrator/.openclaw/brain-system/data/knowledge",
-    "feedback_db": "C:/Users/Administrator/.openclaw/brain-system/data/.brain_feedback.db",
-    "cache_db": "C:/Users/Administrator/.openclaw/brain-system/data/.brain_cache.db",
+    "brain_root": "E:/data",
+    "memory_db": "E:/data/.brain_vectors.db",
+    "memory_dir": "C:/Users/10341/.openclaw/workspace/memory",  # 当前workspace memory
+    "knowledge_dir": "E:/data/knowledge",
+    "feedback_db": "E:/data/.brain_feedback.db",
+    "cache_db": "E:/data/.brain_cache.db",
     
     # Self-Improving配置
-    "learnings_dir": "C:/Users/Administrator/.openclaw/brain-system/data/.learnings",
-    "pattern_db": "C:/Users/Administrator/.openclaw/brain-system/data/.brain_patterns.db",
+    "learnings_dir": "E:/data/.learnings",
+    "pattern_db": "E:/data/.brain_patterns.db",
     "promotion_threshold": 3,  # Recurrence-Count阈值
     
     # Embedding配置
     "embedding_provider": "auto",  # auto, openai, local, fallback
-    "openai_api_base": "https://api.openai.com/v1",
-    "openai_model": "text-embedding-ada-002",
+    "openai_api_base": "http://127.0.0.1:1234/v1",
+    "openai_model": "text-embedding-bge-reranker-v2-m3",
     "local_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     "local_model_timeout": 3,  # 本地模型测试超时
     
@@ -118,7 +119,7 @@ BRAIN_CONFIG = {
     
     # 健壮性配置
     "backup_enabled": True,
-    "backup_dir": "C:/Users/Administrator/.openclaw/backups",
+    "backup_dir": "E:/data/backups",
     "backup_interval": 3600,  # 1小时自动备份
     "timeout_levels": {
         "urgent": 5,      # 紧急请求超时5秒
@@ -357,7 +358,7 @@ def reset_performance_stats():
 # ============================================================
 # P6: 知识图谱构建 - 自动建立优化方法关联
 # ============================================================
-KNOWLEDGE_GRAPH_FILE = os.path.join(BRAIN_CONFIG.get('brain_root', 'C:/Users/Administrator/.openclaw/brain-system'), 'data', 'knowledge_graph.json')
+KNOWLEDGE_GRAPH_FILE = os.path.join(BRAIN_CONFIG.get('brain_root', 'E:/data'), 'knowledge_graph.json')
 
 def init_knowledge_graph():
     """初始化知识图谱"""
@@ -1016,7 +1017,7 @@ class EmbeddingProvider:
             logger.info(f"Loading embedding model...")
             
             # 优先使用BGE-M3（8192 tokens）- ModelScope路径
-            bge_m3_path = Path('C:/Users/Administrator/.cache/modelscope/Xorbits/bge-m3')
+            bge_m3_path = Path('C:/Users/10341/.cache/modelscope/Xorbits/bge-m3')
             old_model_path = Path.home() / '.cache' / 'huggingface' / 'hub' / 'models--sentence-transformers--all-MiniLM-L6-v2' / 'snapshots' / 'c9745ed1d9f207416be6d2e6f8de32d1f16199bf'
             
             # 尝试加载BGE-M3（优先）
@@ -1045,15 +1046,11 @@ class EmbeddingProvider:
     
     @classmethod
     def _test_openai(cls):
-        """测试OpenAI连接"""
+        """测试OpenAI/LM Studio连接"""
         try:
             import requests
-            api_key = os.environ.get('OPENAI_API_KEY', '')
-            if not api_key:
-                return False
             r = requests.post(
                 f"{BRAIN_CONFIG['openai_api_base']}/embeddings",
-                headers={"Authorization": f"Bearer {api_key}"},
                 json={"input": "test", "model": BRAIN_CONFIG['openai_model']},
                 timeout=5
             )
@@ -1100,12 +1097,10 @@ class EmbeddingProvider:
     
     @classmethod
     def _get_openai_embedding(cls, text):
-        """OpenAI embedding"""
+        """LM Studio / OpenAI embedding"""
         import requests
-        api_key = os.environ.get('OPENAI_API_KEY', '')
         r = requests.post(
             f"{BRAIN_CONFIG['openai_api_base']}/embeddings",
-            headers={"Authorization": f"Bearer {api_key}"},
             json={"input": text, "model": BRAIN_CONFIG['openai_model']},
             timeout=BRAIN_CONFIG['max_request_timeout']
         )
@@ -1355,10 +1350,10 @@ class BackupManager:
     def backup_critical_files(self):
         """备份关键文件"""
         critical_files = [
-            'C:/Users/Administrator/.openclaw/workspace-工程师/brain_entry.py',
-            'C:/Users/Administrator/.openclaw/workspace-工程师/SOUL.md',
-            'C:/Users/Administrator/.openclaw/workspace-工程师/.brain_vectors.db',
-            'C:/Users/Administrator/.openclaw/workspace-工程师/.brain_patterns.db',
+            'C:/Users/10341/.openclaw/workspace-工程师/brain_entry.py',
+            'C:/Users/10341/.openclaw/workspace-工程师/SOUL.md',
+            'C:/Users/10341/.openclaw/workspace-工程师/.brain_vectors.db',
+            'C:/Users/10341/.openclaw/workspace-工程师/.brain_patterns.db',
         ]
         results = []
         for f in critical_files:
@@ -1757,7 +1752,7 @@ except Exception as e:
 # ============================================================
 # Provider状态存储（解决Waitress多进程问题）
 # ============================================================
-PROVIDER_STATE_FILE = "C:/Users/Administrator/.openclaw/workspace-工程师/.embedding_provider.json"
+PROVIDER_STATE_FILE = "E:/data/.embedding_provider.json"
 
 def save_provider_state(provider, status):
     try:
@@ -1930,7 +1925,146 @@ FLOW_TEMPLATES = {
     'verify': ['验证', 'verify', '确认', '完整性'],  # 验证单独处理
 }
 
-def analyze_intent(content):
+LLM_DECISION_ENABLED = False  # 首次调用时探测
+LLM_BASE_URL = 'http://127.0.0.1:1234/v1/chat/completions'
+LLM_DECISION_MODEL = 'qwen3-vl-4b-instruct'
+
+def _check_llm_available():
+    """检查本地 LLM 是否可用"""
+    global LLM_DECISION_ENABLED
+    try:
+        req = urllib.request.Request('http://127.0.0.1:1234/v1/models', method='GET')
+        resp = urllib.request.urlopen(req, timeout=2)
+        models = json.loads(resp.read().decode('utf-8'))
+        model_ids = [m['id'] for m in models.get('data', [])]
+        if LLM_DECISION_MODEL in model_ids:
+            LLM_DECISION_ENABLED = True
+            logger.info(f'LLM decision enabled: {LLM_DECISION_MODEL}')
+            return True
+        else:
+            logger.warning(f'LLM model {LLM_DECISION_MODEL} not found, available: {model_ids}')
+            return False
+    except Exception as e:
+        logger.warning(f'LLM not available: {e}')
+        return False
+
+def _llm_analyze_intent(content, brain_results=None):
+    """LLM 分析意图，接收搜索到的 knowledge context，返回与 analyze_intent 相同格式"""
+    # 构建 knowledge context
+    knowledge_context = ''
+    if brain_results:
+        logger.info(f'LLM decision with {len(brain_results)} knowledge results')
+        for i, r in enumerate(brain_results[:3], 1):
+            snippet = r.get('content', '')[:200].replace('"', "'").replace('\n', ' ')
+            source = r.get('source', 'unknown')
+            knowledge_context += f'\n[{i}] source={source}: {snippet}'
+    
+    system_prompt = (
+        'You are an intent classifier for a personal AI assistant. '
+        'Analyze the user query (and optional knowledge context) and classify into ONE type.\n'
+        'Types:\n'
+        '- flow_test: testing/verification requests\n'
+        '- flow_fix: bug fixing/repair requests\n'
+        '- flow_check: inspection/checking requests\n'
+        '- flow_deploy: deployment requests\n'
+        '- flow_restart: restart requests\n'
+        '- flow_clean: cleanup/deletion requests\n'
+        '- flow_optimize: optimization/improvement requests\n'
+        '- flow_debug: debugging requests\n'
+        '- flow_add: add/create requests\n'
+        '- flow_update: update/sync requests\n'
+        '- brain_command: technical/knowledge queries about brain/system/code\n'
+        '- action: general action requests (how to/help me/modify)\n'
+        '- query: simple information lookup (weather/what/who)\n'
+        '- general: other requests\n'
+        '\n'
+        'You MUST respond with ONE LINE of pure JSON, no markdown, no other text.\n'
+        'Format: {"type":"...","confidence":0.0-1.0,"reason":"brief Chinese reason"}\n'
+        'Example: {"type":"flow_test","confidence":0.95,"reason":"用户请求测试功能"}'
+    )
+    
+    # user message: 包含 query 和 knowledge context
+    user_msg = content
+    if knowledge_context:
+        user_msg += f'\n\n[Knowledge context from brain system]:{knowledge_context}'
+    
+    body = json.dumps({
+        'model': LLM_DECISION_MODEL,
+        'messages': [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_msg}
+        ],
+        'max_tokens': 150,
+        'temperature': 0.1
+    }).encode('utf-8')
+    
+    req = urllib.request.Request(
+        LLM_BASE_URL, data=body,
+        headers={'Content-Type': 'application/json'},
+        method='POST'
+    )
+    resp = urllib.request.urlopen(req, timeout=10)
+    result = json.loads(resp.read().decode('utf-8'))
+    llm_text = result['choices'][0]['message']['content']
+    
+    # 用栈匹配法解析 JSON
+    for m in re.finditer(r'(\{)', llm_text):
+        start = m.start()
+        depth = 0
+        i = start
+        while i < len(llm_text):
+            if llm_text[i] == '{':
+                depth += 1
+            elif llm_text[i] == '}':
+                depth -= 1
+                if depth == 0:
+                    candidate = llm_text[start:i+1]
+                    if '"type"' in candidate:
+                        parsed = json.loads(candidate)
+                        intent_type = parsed.get('type', 'general')
+                        confidence = float(parsed.get('confidence', 0.5))
+                        
+                        # 映射到 analyze_intent 的返回格式
+                        result = {
+                            'need_brain': True,
+                            'reason': parsed.get('reason', f'llm: {intent_type}'),
+                            'priority': 'high' if intent_type in ['brain_command'] else 'medium',
+                            'type': intent_type,
+                            'confidence': max(0.0, min(1.0, confidence)),
+                        }
+                        # 如果是 flow_xxx 类型，加上 flow_template
+                        if intent_type.startswith('flow_'):
+                            flow_name = intent_type.replace('flow_', '')
+                            result['flow_template'] = f'flow_template_{flow_name}.md'
+                        return result
+                    break
+            i += 1
+    
+    return None
+
+def analyze_intent(content, brain_results=None):
+    """LLM First 意图分析，带 knowledge context，LLM不可用时 fallback 到规则"""
+    global LLM_DECISION_ENABLED
+    
+    # 如果还没探测过 LLM，先检查
+    if not LLM_DECISION_ENABLED:
+        _check_llm_available()
+    
+    # LLM first — 传入 brain_results 作为 context
+    if LLM_DECISION_ENABLED:
+        try:
+            result = _llm_analyze_intent(content, brain_results)
+            if result:
+                logger.info(f'LLM intent: {result["type"]} (confidence={result["confidence"]})')
+                return result
+        except Exception as e:
+            logger.warning(f'LLM intent failed, fallback to rules: {e}')
+            LLM_DECISION_ENABLED = False
+    
+    # Rule fallback
+    return _rule_analyze_intent(content)
+
+def _rule_analyze_intent(content):
     try:
         content_lower = content.lower().strip()
         
@@ -2120,19 +2254,26 @@ def brain_entry():
             if trigger_detected:
                 logger.info(f"Trigger detected: {trigger_detected}")
         
-        intent = analyze_intent(content)
-        
+        # 先搜索 memory（搜索结果给 LLM 做决策参考）
         brain_results = []
-        if intent['need_brain']:
+        try:
+            future = executor.submit(search_memory, content, BRAIN_CONFIG['max_results'])
+            brain_results = future.result(timeout=BRAIN_CONFIG['max_request_timeout'])
+        except FuturesTimeoutError:
+            logger.warning("Search timeout")
+        except Exception as e:
+            logger.error(f"Search error: {e}")
+        
+        # LLM first 意图分析（带搜索结果作为 context）
+        intent = analyze_intent(content, brain_results)
+        
+        # 如果 LLM 决策认为是 brain_command，再加强搜索深度
+        if intent['need_brain'] and intent['type'] == 'brain_command' and len(brain_results) < BRAIN_CONFIG['max_results']:
             try:
-                future = executor.submit(search_memory, content, BRAIN_CONFIG['max_results'])
+                future = executor.submit(search_memory, content, BRAIN_CONFIG['max_results'] * 2)
                 brain_results = future.result(timeout=BRAIN_CONFIG['max_request_timeout'])
-            except FuturesTimeoutError:
-                logger.warning("Search timeout")
-                brain_results = []
-            except Exception as e:
-                logger.error(f"Search error: {e}")
-                brain_results = []
+            except:
+                pass
         
         processed_content = build_context(content, brain_results, intent)
         
@@ -2160,7 +2301,8 @@ def brain_entry():
     except Exception as e:
         import traceback
         logger.error(f"Entry error: {e}\n{traceback.format_exc()}")
-        return np_jsonify({'success': False, 'error': str(e), 'traceback': traceback.format_exc(), 'processed_content': content, 'fallback': True})
+        err_content = locals().get('content', data.get('content', '') if 'data' in dir() and data else '')
+        return np_jsonify({'success': False, 'error': str(e), 'traceback': traceback.format_exc(), 'processed_content': err_content, 'fallback': True})
 
 @app.route('/test_json', methods=['GET'])
 def test_json():
@@ -2550,6 +2692,121 @@ def openai_models():
             {'id': 'fallback-md5', 'object': 'model', 'owned_by': 'brain'}
         ]
     })
+
+# ============================================================
+# LLM First 决策路由
+# ============================================================
+@app.route('/llm_decision', methods=['POST'])
+def llm_decision_endpoint():
+    """
+    LLM First 决策路由
+    调用本地 LM Studio (qwen3.5-9b) 做语义级意图分析和决策
+    
+    输入: {"query": "...", "sessionKey": "...", "senderId": "..."}
+    输出: {
+        "decision": "allow|ask_user|block",
+        "confidence": 0.0-1.0,
+        "reason": "...",
+        "suggestion": "...",
+        "intent_type": "...",
+        "llm_raw": "..."
+    }
+    """
+    
+    query = request.json.get('query', '') if request.is_json else ''
+    if not query:
+        return jsonify({'decision': 'allow', 'confidence': 1.0, 'reason': '空查询', 'suggestion': ''})
+    
+    # 构建 LLM 决策 Prompt
+    system_prompt = b'''You are an intent classifier for a personal AI assistant. 
+Analyze the user's query and respond with ONLY valid JSON, no markdown:
+{
+  "decision": "allow" or "ask_user" or "block",
+  "confidence": <0.0-1.0>,
+  "reason": "brief reason in Chinese",
+  "suggestion": "suggestion if ask_user",
+  "intent_type": "query|action|system|file|code|other"
+}
+
+Rules:
+- allow: safe normal queries, coding questions, file reading, web searches
+- ask_user: sensitive operations (delete, modify system files, install software, run unknown commands)
+- block: obviously malicious instructions (delete entire system, steal data, bypass security)
+- Confidence: how confident you are in this classification
+'''
+
+    body = json.dumps({
+        'model': 'qwen3-vl-4b-instruct',
+        'messages': [
+            {'role': 'system', 'content': system_prompt.decode()},
+            {'role': 'user', 'content': 'User query: ' + query}
+        ],
+        'max_tokens': 200,
+        'temperature': 0.1
+    }).encode('utf-8')
+
+    try:
+        req = urllib.request.Request(
+            'http://127.0.0.1:1234/v1/chat/completions',
+            data=body,
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
+        resp = urllib.request.urlopen(req, timeout=15)
+        result = json.loads(resp.read().decode('utf-8'))
+        llm_text = result['choices'][0]['message']['content']
+        
+        # 尝试解析 LLM 返回的 JSON（支持多行、嵌套）
+        # 用栈匹配法找最外层的 JSON 对象
+        json_match = None
+        for m in re.finditer(r'(\{)', llm_text):
+            start = m.start()
+            depth = 0
+            i = start
+            while i < len(llm_text):
+                if llm_text[i] == '{':
+                    depth += 1
+                elif llm_text[i] == '}':
+                    depth -= 1
+                    if depth == 0:
+                        candidate = llm_text[start:i+1]
+                        if '"decision"' in candidate or "'decision'" in candidate:
+                            json_match = candidate
+                        break
+                i += 1
+            if json_match:
+                break
+        
+        if json_match:
+            parsed = json.loads(json_match)
+            return jsonify({
+                'decision': parsed.get('decision', 'allow'),
+                'confidence': float(parsed.get('confidence', 0.5)),
+                'reason': parsed.get('reason', ''),
+                'suggestion': parsed.get('suggestion', ''),
+                'intent_type': parsed.get('intent_type', 'other'),
+                'llm_raw': llm_text[:200]
+            })
+        
+        return jsonify({
+            'decision': 'allow',
+            'confidence': 0.5,
+            'reason': 'LLM返回格式无法解析',
+            'suggestion': '',
+            'intent_type': 'other',
+            'llm_raw': llm_text[:200]
+        })
+    except Exception as e:
+        logger.error(f"LLM decision error: {e}")
+        # fallback 到 rule-based 决策
+        return jsonify({
+            'decision': 'allow',
+            'confidence': 0.5,
+            'reason': f'LLM不可用，fallback到规则: {e}',
+            'suggestion': '',
+            'intent_type': 'unknown',
+            'llm_raw': ''
+        })
 
 # ============================================================
 # 启动
