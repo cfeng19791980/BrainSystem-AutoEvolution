@@ -2158,43 +2158,55 @@ def detect_flow_template(content):
 # ============================================================
 # 上下文构建 - 精简版（方案A）+ 流程模板注入
 # ============================================================
+# ============================================================
+# 意图类型关键词映射表（供本地LLM自主决策）
+# ============================================================
+INTENT_KEYWORDS = {
+    'flow_test': ['测试', 'test', '检测', '验证', '试试', '运行一下', '跑一下', '试一下', '测试一下'],
+    'flow_fix': ['修复', 'fix', 'bug', '错误', '问题', '解决', '救', '卡住', '报错', '修', 'repair', 'hotfix'],
+    'flow_check': ['检查', 'check', '查看', '看下', '诊断', 'inspect', '状态', '看看', '帮我看看', '查一下'],
+    'flow_deploy': ['发布', '部署', '上线', '推送', 'push', 'deploy', 'publish'],
+    'flow_restart': ['重启', '启动', 'start', 'reload', 'reboot', '重新启动'],
+    'flow_clean': ['清理', '删除', '清掉', '重装', 'clean', 'purge', '清除', '删'],
+    'flow_optimize': ['优化', '改进', '重构', '提升', '调优', '改善', 'improve', 'optimize'],
+    'flow_debug': ['调试', 'debug', '看日志', '查错误', 'trace', '日志', 'log'],
+    'flow_add': ['添加', '新增', '创建', '建一个', 'create', 'add', '新建', '加一个'],
+    'flow_update': ['更新', '升级', '更新一下', 'upgrade', 'update', '同步', 'sync'],
+    'flow_ask': ['解释', '是什么', '为什么', '请教', 'explain', '说明', '分析', 'analyze'],
+    'flow_operate': ['遍历', '扫描', '整理', '处理', '走一遍', 'batch', '批量'],
+    'flow_execute': ['执行', '运行脚本', 'run', 'execute', '运行'],
+    'flow_export': ['导出', 'import', 'export', '导入', '备份', '迁移'],
+    'brain_command': ['写代码', '实现功能', 'develop', 'refactor', '开发', '编码', '代码'],
+}
+
 def build_context(content, brain_results, intent):
-    """精简版上下文：只显示关键信息 + 流程模板注入"""
-    # 强制转换confidence为Python float
+    """精简版上下文：只显示关键信息 + 类型关键词映射表（供LLM自主决策）"""
     import numpy as np
     confidence = float(intent.get('confidence', 0.5)) if isinstance(intent.get('confidence', 0.5), np.floating) else intent.get('confidence', 0.5)
     provider, _ = load_provider_state()
-    priority = intent.get('priority', 'default')
     intent_type = intent.get('type', 'general')
-    flow_template = intent.get('flow_template')
     
-    # 精简格式：一行显示关键信息
+    # 第一行：简要统计
     summary = f"[Brain] results={len(brain_results)}, confidence={confidence:.2f}, type={intent_type}, provider={provider}"
     
-    # 流程模板注入
-    flow_content = ""
-    if flow_template:
-        template_path = os.path.join(BRAIN_CONFIG['knowledge_dir'], flow_template)
-        if os.path.exists(template_path):
-            try:
-                with open(template_path, 'r', encoding='utf-8') as f:
-                    flow_content = f.read()
-                logger.info(f"Injected flow template: {flow_template}")
-            except Exception as e:
-                logger.error(f"Failed to read template: {e}")
+    # 核心：所有类型的完整关键词映射表，供LLM自主决策
+    keywords_map = "\n".join([f"  - {k}: {'/'.join(v)}" for k, v in INTENT_KEYWORDS.items()])
+    flow_section = f"\n\n## Intent Keywords\n{keywords_map}"
     
-    # 简短提示
-    notes = ""
-    if confidence < 0.5:
-        notes = " (低置信度，建议请示用户)"
-    if intent_type == 'system':
-        notes = " (P3任务，必须请示)"
+    # 附加：本次匹配到的brain_results摘要（如果有）
+    results_summary = ""
+    if brain_results:
+        for i, r in enumerate(brain_results[:3]):
+            source = r.get('source', 'unknown')
+            score = r.get('score', 0)
+            content_short = r.get('content', '')[:80].replace('\n', ' ')
+            results_summary += f"\n  [{i+1}] source={source}, score={score:.2f}: {content_short}"
     
-    # 如果有流程模板，返回模板内容
-    if flow_content:
-        return summary + notes + "\n\n## 流程模板\n" + flow_content[:500]  # 限制500字符
+    if not results_summary:
+        results_summary = "\n  (no relevant knowledge found)"
     
-    return summary + notes
+    # 完整返回：摘要 + 关键词映射 + 搜索结果
+    return summary + flow_section + "\n\n## Knowledge Results" + results_summary
 
 # ============================================================
 # API端点
