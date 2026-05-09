@@ -85,7 +85,7 @@ BRAIN_CONFIG = {
     
     # Embedding配置
     "embedding_provider": "auto",  # auto, openai, local, fallback
-    "openai_api_base": "http://127.0.0.1:1234/v1",
+    "openai_api_base": "http://127.0.0.1:1235/v1",
     "openai_model": "text-embedding-bge-reranker-v2-m3",
     "local_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     "local_model_timeout": 3,  # 本地模型测试超时
@@ -1926,26 +1926,30 @@ FLOW_TEMPLATES = {
 }
 
 LLM_DECISION_ENABLED = False  # 首次调用时探测
-LLM_BASE_URL = 'http://127.0.0.1:1234/v1/chat/completions'
-LLM_DECISION_MODEL = 'qwen3-vl-4b-instruct'
+LLM_BASE_URL = 'http://127.0.0.1:1235/v1/chat/completions'
+LLM_DETECT_URL = 'http://127.0.0.1:1235/v1/models'
+LLM_DECISION_MODEL = 'Qwen3.5-9B-Q3_K_S.gguf'
+LLM_API_KEY = 'not-needed'  # llama.cpp 不需要 key
+
+LLM_DECISION_ENABLED = False
 
 def _check_llm_available():
     """检查本地 LLM 是否可用"""
     global LLM_DECISION_ENABLED
     try:
-        req = urllib.request.Request('http://127.0.0.1:1234/v1/models', method='GET')
+        req = urllib.request.Request(LLM_DETECT_URL, method='GET')
         resp = urllib.request.urlopen(req, timeout=2)
         models = json.loads(resp.read().decode('utf-8'))
         model_ids = [m['id'] for m in models.get('data', [])]
-        if LLM_DECISION_MODEL in model_ids:
+        if any(LLM_DECISION_MODEL in m_id for m_id in model_ids):
             LLM_DECISION_ENABLED = True
-            logger.info(f'LLM decision enabled: {LLM_DECISION_MODEL}')
+            logger.info(f'LLM decision enabled via llama.cpp: {LLM_DECISION_MODEL}')
             return True
         else:
-            logger.warning(f'LLM model {LLM_DECISION_MODEL} not found, available: {model_ids}')
+            logger.warning(f'LLM model not found via llama.cpp, available: {model_ids}')
             return False
     except Exception as e:
-        logger.warning(f'LLM not available: {e}')
+        logger.warning(f'LLM (llama.cpp) not available: {e}')
         return False
 
 def _llm_analyze_intent(content, brain_results=None):
@@ -2180,33 +2184,227 @@ INTENT_KEYWORDS = {
 }
 
 def build_context(content, brain_results, intent):
-    """精简版上下文：只显示关键信息 + 类型关键词映射表（供LLM自主决策）"""
+    """
+    标准结构化上下文：为智能体提供清晰的指令框架。
+    
+    输出格式：
+    ═══════════════════════════════════════════
+    [Brain] 角色定位 | 意图 | 置信度
+    
+    ▌核心信息
+    用户原始指令（未经修改）
+    
+    ▌参考信息
+    高度相关的 memory 结果（score >= 0.9）
+    
+    ▌任务建议
+    基于意图类型推荐的处理流程
+    
+    ▌全局原则
+    编码规范、修改准则等
+    ═══════════════════════════════════════════
+    """
     import numpy as np
     confidence = float(intent.get('confidence', 0.5)) if isinstance(intent.get('confidence', 0.5), np.floating) else intent.get('confidence', 0.5)
     provider, _ = load_provider_state()
     intent_type = intent.get('type', 'general')
     
-    # 第一行：简要统计
-    summary = f"[Brain] results={len(brain_results)}, confidence={confidence:.2f}, type={intent_type}, provider={provider}"
+    # 意图类型中文映射
+    intent_labels = {
+        'flow_test': '测试验证', 'flow_fix': '问题修复', 'flow_check': '检查诊断',
+        'flow_deploy': '部署上线', 'flow_restart': '重启服务', 'flow_clean': '清理删除',
+        'flow_optimize': '优化改进', 'flow_debug': '调试排查', 'flow_add': '新增创建',
+        'flow_update': '更新同步', 'flow_execute': '执行操作', 'flow_export': '导入导出',
+        'flow_operate': '批量处理', 'brain_command': '开发编码', 'flow_ask': '询问解释',
+        'query': '信息查询', 'action': '操作请求', 'general': '通用对话'
+    }
+    intent_label = intent_labels.get(intent_type, intent_type)
     
-    # 核心：所有类型的完整关键词映射表，供LLM自主决策
+    # 意图关键词映射表
     keywords_map = "\n".join([f"  - {k}: {'/'.join(v)}" for k, v in INTENT_KEYWORDS.items()])
-    flow_section = f"\n\n## Intent Keywords\n{keywords_map}"
     
-    # 附加：本次匹配到的brain_results摘要（如果有）
-    results_summary = ""
+    # --- 角色定位 ---
+    role_section = f"[Brain] 角色定位: 本地智能助手 | 意图: {intent_label} | 置信度: {confidence:.0%} | 引擎: {provider}"
+    
+    # --- 核心信息：用户原始指令 ---
+    core_section = f"\n\n▌核心信息\n{content}"
+    
+    # --- 参考信息：高度相关的 memory 结果（score >= 0.9）---
+    ref_section = ""
+    HIGH_CONFIDENCE_THRESHOLD = 0.9
     if brain_results:
-        for i, r in enumerate(brain_results[:3]):
-            source = r.get('source', 'unknown')
-            score = r.get('score', 0)
-            content_short = r.get('content', '')[:80].replace('\n', ' ')
-            results_summary += f"\n  [{i+1}] source={source}, score={score:.2f}: {content_short}"
+        strong_results = [r for r in brain_results if r.get('score', 0) >= HIGH_CONFIDENCE_THRESHOLD]
+        if strong_results:
+            ref_section = "\n\n▌参考信息"
+            for i, r in enumerate(strong_results[:3]):
+                source = r.get('source', 'unknown')
+                score = r.get('score', 0)
+                content_short = r.get('content', '')[:150].replace('\n', ' ')
+                ref_section += f"\n  [{i+1}] [{source}] (score={score:.2f}): {content_short}"
     
-    if not results_summary:
-        results_summary = "\n  (no relevant knowledge found)"
+    # --- 任务建议：基于意图推荐流程模板 ---
+    task_templates = {
+        'flow_test': '1. 明确测试场景和预期结果 → 2. 执行测试 → 3. 对比实际/预期 → 4. 输出报告',
+        'flow_fix': '1. 确认问题现象 → 2. 查看日志/复现 → 3. 定位根因 → 4. 备份后修复 → 5. 验证修复',
+        'flow_check': '1. 确定检查范围 → 2. 执行诊断 → 3. 汇总状态 → 4. 给出结论',
+        'flow_deploy': '1. 检查环境 → 2. 备份当前版本 → 3. 执行部署 → 4. 验证可用性',
+        'flow_restart': '1. 确认服务状态 → 2. 执行重启 → 3. 等待就绪 → 4. 验证恢复',
+        'flow_clean': '1. 确认清理范围 → 2. 备份（如需） → 3. 执行清理 → 4. 确认结果',
+        'flow_debug': '1. 收集日志/错误信息 → 2. 分析关键线索 → 3. 定位问题点 → 4. 给出解决方案',
+        'flow_optimize': '1. 分析当前方案 → 2. 识别改进点 → 3. 实施优化 → 4. 对比效果',
+        'brain_command': '1. 理解需求 → 2. 设计方案 → 3. 备份后编码 → 4. 测试验证 → 5. 清理临时文件',
+        'flow_ask': '1. 理解问题 → 2. 分析背景 → 3. 给出解释/建议',
+    }
+    template = task_templates.get(intent_type, '1. 理解需求 → 2. 分析上下文 → 3. 执行 → 4. 验证')
+    task_section = f"\n\n▌任务建议\n{template}"
     
-    # 完整返回：摘要 + 关键词映射 + 搜索结果
-    return summary + flow_section + "\n\n## Knowledge Results" + results_summary
+    # --- 全局原则 ---
+    principles = (
+        '\n\n\u25cc\u5168\u5c40\u539f\u5219'
+        '\n  1. UTF-8 | 2. \u5148\u7406\u89e3\u518d\u7f16\u7801 | 3. \u7b80\u5355\u4f18\u5148'
+        '\n  4. \u5916\u79d1\u624b\u672f\u5f0f\u4fee\u6539 | 5. \u76ee\u6807\u9a71\u52a8 | 6. \u5148\u5907\u4efd'
+        '\n  7. \u5e72\u5b8c\u6e05\u7406 | 8. \u91cd\u5927\u4fee\u6539 push to github'
+    )
+    
+    # ====== 完整输出 ======
+    return role_section + core_section + ref_section + task_section + principles
+
+
+def auto_execute_file_action(content, intent):
+    """
+    检测内容是否涉及文件读取/目录列出操作，自动执行工具并返回结果。
+    返回 dict 或 None（无需执行时返回 None）
+    """
+    import re
+    
+    # 检测文件读取模式
+    content_lower = content.lower().strip()
+    
+    # 后缀映射表
+    code_patterns = [
+        # 读文件模式: "读取 X:/path", "查看 X:/path", "读 X:/path"
+        (r'(?:读取|查看|读|打开|看[一下]?|显示|查[看找]?[一下]?)\s+([A-Za-z]:[\\/][^\s"\']+)', 'file'),
+        # 列目录模式: "列出 X:/path", "查看 X:/path 目录", "X:/path 有什么文件"
+        (r'(?:列出|查看|显示|浏览)\s+([A-Za-z]:[\\/][^\s"\']+?)\s*(?:目录|文件夹|文件|内容)?', 'dir'),
+        # 路径 + 文件/目录关键词
+        (r'([A-Za-z]:[\\/](?:[^\s"\']+/)*[^\s"\']*)\s+(?:文件|内容|目录|文件夹)', 'auto'),
+        # 纯路径读文件
+        (r'(?:用|通过|使用|执行).*?Deno.*?(?:读取|读|查).*?([A-Za-z]:[\\/][^\s"\']+)', 'deno'),
+        # E 盘/D 盘根目录列
+        (r'(?:列|查看|显示|浏览).*(?:[EDed])[盘:](.*?)(?:文件|目录|文件夹|内容)', 'dir'),
+        # "看下 E 盘有什么" / "列出 E 盘的文件"
+        (r'(?:看[一下]?|查[看找]?|列[出]?|显示|浏览).*(?:([CcDdEeFf]):?)[盘]?.*?(?:文件|目录|文件夹)?', 'dir_disk'),
+    ]
+    
+    path = None
+    action_type = None
+    
+    for pattern, atype in code_patterns:
+        m = re.search(pattern, content)
+        if m:
+            path = m.group(1) if m.lastindex and m.lastindex >= 1 else None
+            action_type = atype
+            break
+    
+    import logging
+    logger = logging.getLogger('brain_entry')
+    if not action_type:
+        logger.info(f'AutoTool: no action_type matched for content={content[:80]!r}')
+        return None
+    
+    # 规范化路径
+    if path:
+        path = path.replace('\\', '/').strip()
+        # 确保有前缀
+        if not path.startswith(('C:/', 'D:/', 'E:/', 'C:', 'D:', 'E:')):
+            path = None
+    
+    if action_type == 'dir_disk' and not path:
+        # Extract drive letter from matched group
+        for pattern, atype in code_patterns:
+            m = re.search(pattern, content)
+            if m and atype == 'dir_disk':
+                letter = m.group(1) if m.lastindex else None
+                if letter:
+                    path = letter.upper() + ':/'
+                    break
+    
+    # 规范化路径
+    if path:
+        path = path.replace('\\', '/').strip()
+        # 确保有前缀
+        if not path.startswith(('C:/', 'D:/', 'E:/', 'C:\\', 'D:\\', 'E:\\')):
+            path = None
+    
+    # 如果没有提取到具体路径，尝试从上下文推断
+    if (action_type == 'dir' or action_type == 'dir_disk') and not path:
+        # 检查是否提到 E 盘/D 盘
+        if re.search(r'[Ee][盘:]|E:', content):
+            path = 'E:/'
+        elif re.search(r'[Dd][盘:]|D:', content):
+            path = 'D:/' if os.path.exists('D:/') else None
+    
+    if not path:
+        logger.info(f'AutoTool: no path after matching, action_type={action_type}')
+        return None
+    
+    import subprocess
+    import os
+    
+    logger.info(f'AutoTool: executing action_type={action_type}, path={path!r}')
+    
+    # 根据类型执行
+    try:
+        if action_type == 'file':
+            # 读文件
+            if os.path.exists(path) and os.path.isfile(path):
+                file_size = os.path.getsize(path)
+                if file_size > 10 * 1024 * 1024:
+                    return {'type': 'error', 'message': 'File too large (>10MB)'}
+                with open(path, 'r', encoding='utf-8', errors='replace') as f:
+                    content_text = f.read(50000)
+                return {'type': 'file', 'path': path, 'content': content_text, 'file_size': file_size}
+            else:
+                return {'type': 'error', 'message': f'File not found: {path}'}
+        
+        elif action_type == 'dir' or action_type == 'dir_disk':
+            # 列目录
+            if os.path.exists(path) and os.path.isdir(path):
+                entries = os.listdir(path)
+                entry_list = []
+                for entry in entries[:200]:
+                    full = os.path.join(path, entry)
+                    try:
+                        is_dir = os.path.isdir(full)
+                        entry_list.append({
+                            'name': entry,
+                            'type': 'dir' if is_dir else 'file',
+                            'size': os.path.getsize(full) if not is_dir else 0
+                        })
+                    except:
+                        entry_list.append({'name': entry, 'type': 'unknown'})
+                return {'type': 'directory', 'path': path, 'entries': entry_list}
+            else:
+                return {'type': 'error', 'message': f'Directory not found: {path}'}
+        
+        elif action_type == 'deno' or action_type == 'auto':
+            # 尝试用 Deno 读取或判断
+            if os.path.isdir(path):
+                entries = os.listdir(path)
+                entry_list = [{'name': e, 'type': 'dir' if os.path.isdir(os.path.join(path, e)) else 'file'} for e in entries[:200]]
+                return {'type': 'directory', 'path': path, 'entries': entry_list}
+            elif os.path.isfile(path):
+                file_size = os.path.getsize(path)
+                if file_size > 10 * 1024 * 1024:
+                    return {'type': 'error', 'message': 'File too large (>10MB)'}
+                with open(path, 'r', encoding='utf-8', errors='replace') as f:
+                    content_text = f.read(50000)
+                return {'type': 'file', 'path': path, 'content': content_text, 'file_size': file_size}
+            else:
+                return {'type': 'error', 'message': f'Path not found: {path}'}
+    except Exception as e:
+        return {'type': 'error', 'message': str(e)}
+
 
 # ============================================================
 # API端点
@@ -2288,6 +2486,32 @@ def brain_entry():
                 pass
         
         processed_content = build_context(content, brain_results, intent)
+        
+        # ============================================
+        # Auto Tool Execution [DISABLED - was returning too much data]
+        # ============================================
+        # file_action_result = auto_execute_file_action(content, intent)
+        # if file_action_result:
+        #     tool_section = '\n\n--- Auto File Tool Result ---\n'
+        #     if file_action_result.get('type') == 'file':
+        #         tool_section += f"File: {file_action_result['path']}\n"
+        #         tool_section += f"Content:\n{file_action_result.get('content', '')}\n"
+        #     elif file_action_result.get('type') == 'directory':
+        #         entries = file_action_result.get('entries', [])
+        #         tool_section += f"Directory: {file_action_result['path']}\n"
+        #         tool_section += f"Entries ({len(entries)}):\n"
+        #         for e in entries:
+        #             t = '[DIR]' if e.get('type') == 'dir' else '[FILE]'
+        #             tool_section += f"  {t} {e['name']}\n"
+        #     elif file_action_result.get('type') == 'deno':
+        #         tool_section += f"Deno Execution Results:\n"
+        #         if file_action_result.get('stdout'):
+        #             tool_section += f"stdout:\n{file_action_result['stdout']}\n"
+        #         if file_action_result.get('stderr'):
+        #             tool_section += f"stderr:\n{file_action_result['stderr']}\n"
+        #     
+        #     tool_section += '--- End Auto File Tool Result ---\n'
+        #     processed_content += tool_section
         
         if feedback_manager:
             feedback_manager.record(content, intent, len(brain_results), user_action, str(intent.get('confidence', 0.5)))
@@ -2759,7 +2983,7 @@ Rules:
 
     try:
         req = urllib.request.Request(
-            'http://127.0.0.1:1234/v1/chat/completions',
+            LLM_BASE_URL,
             data=body,
             headers={'Content-Type': 'application/json'},
             method='POST'
@@ -2821,9 +3045,335 @@ Rules:
         })
 
 # ============================================================
+# Tool 执行端点
+# ============================================================
+@app.route('/tools/run_js', methods=['POST'])
+def tool_run_js():
+    """
+    在本地 Deno 沙箱中执行 JavaScript/TypeScript 代码。
+    
+    输入: {"javascript": "...", "timeout_seconds": 15}
+    输出: {"success": true, "stdout": "...", "stderr": "...", "exit_code": 0}
+    
+    权限: allow-read=.,D:/,E:/,C:/Users/ + deny-write
+    """
+    start_time = time.time()
+    try:
+        data = request.get_json() or {}
+        javascript = data.get('javascript', '')
+        timeout_seconds = data.get('timeout_seconds', 10)
+        
+        if not javascript:
+            return np_jsonify({'success': False, 'stdout': '', 'stderr': 'No javascript code provided', 'exit_code': -1})
+        
+        # 找到 LM Studio 的 Deno 路径
+        lmstudio_home = os.path.expanduser('~/.lmstudio')
+        deno_path = os.path.join(lmstudio_home, '.internal', 'utils', 'deno.exe')
+        
+        if not os.path.exists(deno_path):
+            return np_jsonify({'success': False, 'stdout': '', 'stderr': f'Deno not found at {deno_path}', 'exit_code': -2})
+        
+        # 写入临时脚本
+        work_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data')
+        os.makedirs(work_dir, exist_ok=True)
+        script_filename = f'temp_script_{int(time.time() * 1000)}.ts'
+        script_path = os.path.join(work_dir, script_filename)
+        
+        with open(script_path, 'w', encoding='utf-8') as f:
+            f.write(javascript)
+        
+        # 执行 Deno（使用修改后的沙箱权限，允许读 E:/ D:/ C:/Users/，禁止写）
+        import subprocess
+        result = subprocess.run(
+            [
+                deno_path, 'run',
+                '--allow-read=.,D:/,E:/,C:/Users/',
+                '--deny-write',
+                '--no-prompt',
+                '--deny-net',
+                '--deny-env',
+                '--deny-sys',
+                '--deny-run',
+                '--deny-ffi',
+                script_path
+            ],
+            capture_output=True,
+            timeout=min(timeout_seconds, 60)
+        )
+        
+        stdout = result.stdout.decode('utf-8', errors='replace')
+        stderr = result.stderr.decode('utf-8', errors='replace')
+        exit_code = result.returncode
+        
+        # 删除临时文件
+        try:
+            os.remove(script_path)
+        except:
+            pass
+        
+        elapsed = time.time() - start_time
+        logger.info(f'Tool run_js: {elapsed:.2f}s, exit={exit_code}, stdout_len={len(stdout)}')
+        
+        return np_jsonify({
+            'success': exit_code == 0,
+            'stdout': stdout,
+            'stderr': stderr,
+            'exit_code': exit_code,
+            'elapsed_seconds': round(elapsed, 2)
+        })
+        
+    except subprocess.TimeoutExpired:
+        logger.warning(f'Tool run_js timeout after {timeout_seconds}s')
+        return np_jsonify({'success': False, 'stdout': '', 'stderr': f'Execution timed out after {timeout_seconds}s', 'exit_code': -3})
+    except Exception as e:
+        logger.error(f'Tool run_js error: {e}')
+        return np_jsonify({'success': False, 'stdout': '', 'stderr': str(e), 'exit_code': -4})
+
+
+@app.route('/tools/read_file', methods=['POST'])
+def tool_read_file():
+    """
+    读取本地文件（安全只读）。
+    
+    输入: {"path": "E:/some/file.txt", "max_chars": 50000}
+    输出: {"success": true, "content": "...", "path": "...", "length": 123}
+    
+    安全限制：仅允许读取 E:/, D:/, C:/Users/ 路径
+    """
+    start_time = time.time()
+    try:
+        data = request.get_json() or {}
+        filepath = data.get('path', '')
+        max_chars = data.get('max_chars', 50000)
+        
+        if not filepath:
+            return np_jsonify({'success': False, 'error': 'No path provided'})
+        
+        # 安全校验：只允许特定路径
+        allowed_prefixes = ['E:/', 'E:\\', 'D:/', 'D:\\', 'C:/Users/', 'C:\\Users\\']
+        safe = False
+        norm_path = filepath.replace('\\', '/')
+        for prefix in allowed_prefixes:
+            if norm_path.startswith(prefix):
+                safe = True
+                break
+        
+        if not safe:
+            logger.warning(f'Read file blocked (path not allowed): {filepath}')
+            return np_jsonify({'success': False, 'error': f'Path not in allowed range: {filepath}'})
+        
+        if not os.path.exists(filepath):
+            return np_jsonify({'success': False, 'error': f'File not found: {filepath}'})
+        
+        if os.path.isdir(filepath):
+            # 如果是目录，列出内容
+            try:
+                entries = os.listdir(filepath)
+                entry_list = []
+                for entry in entries[:200]:
+                    full = os.path.join(filepath, entry)
+                    try:
+                        is_dir = os.path.isdir(full)
+                        size = os.path.getsize(full) if not is_dir else 0
+                        entry_list.append({
+                            'name': entry,
+                            'type': 'dir' if is_dir else 'file',
+                            'size': size
+                        })
+                    except:
+                        entry_list.append({'name': entry, 'type': 'unknown', 'size': 0})
+                
+                elapsed = time.time() - start_time
+                logger.info(f'Tool read_file (dir): {filepath}, {len(entry_list)} entries')
+                return np_jsonify({
+                    'success': True,
+                    'type': 'directory',
+                    'path': filepath,
+                    'entries': entry_list,
+                    'count': len(entry_list),
+                    'elapsed_seconds': round(elapsed, 2)
+                })
+            except Exception as e:
+                return np_jsonify({'success': False, 'error': f'Cannot list directory: {e}'})
+        
+        # 读文件
+        try:
+            file_size = os.path.getsize(filepath)
+            if file_size > 10 * 1024 * 1024:  # 10MB 限制
+                return np_jsonify({'success': False, 'error': 'File too large (>10MB)'})
+            
+            with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
+                content = f.read(max_chars)
+            
+            elapsed = time.time() - start_time
+            logger.info(f'Tool read_file: {filepath}, {len(content)} chars')
+            
+            return np_jsonify({
+                'success': True,
+                'type': 'file',
+                'path': filepath,
+                'content': content,
+                'length': len(content),
+                'file_size': file_size,
+                'truncated': len(content) >= max_chars,
+                'elapsed_seconds': round(elapsed, 2)
+            })
+        except UnicodeDecodeError:
+            # 二进制文件
+            return np_jsonify({'success': False, 'error': 'Binary file (not UTF-8 readable)'})
+        except Exception as e:
+            return np_jsonify({'success': False, 'error': f'Read error: {e}'})
+    
+    except Exception as e:
+        logger.error(f'Tool read_file error: {e}')
+        return np_jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/tools/list_dir', methods=['POST'])
+def tool_list_dir():
+    """
+    列出目录内容。
+    输入: {"path": "E:/some/dir", "max_entries": 100}
+    输出: {"success": true, "entries": [...], "count": N}
+    """
+    try:
+        data = request.get_json() or {}
+        dirpath = data.get('path', 'E:/')
+        max_entries = data.get('max_entries', 200)
+        
+        if not os.path.exists(dirpath):
+            return np_jsonify({'success': False, 'error': f'Path not found: {dirpath}'})
+        
+        if not os.path.isdir(dirpath):
+            return np_jsonify({'success': False, 'error': f'Not a directory: {dirpath}'})
+        
+        entries = os.listdir(dirpath)
+        result = []
+        for entry in entries[:max_entries]:
+            full = os.path.join(dirpath, entry)
+            try:
+                stat = os.stat(full)
+                result.append({
+                    'name': entry,
+                    'type': 'dir' if os.path.isdir(full) else 'file',
+                    'size': stat.st_size,
+                    'modified': datetime.fromtimestamp(stat.st_mtime).isoformat()
+                })
+            except:
+                result.append({'name': entry, 'type': 'unknown'})
+        
+        return np_jsonify({
+            'success': True,
+            'path': dirpath,
+            'entries': result,
+            'count': len(result),
+            'total': len(entries)
+        })
+    except Exception as e:
+        return np_jsonify({'success': False, 'error': str(e)})
+
+
+# ============================================================
+# 自动启动 llama-server（如果 1235 端口没有服务）
+# ============================================================
+LLAMA_SERVER_PATH = 'E:\\llama_bin\\llama-server.exe'
+LLAMA_MODEL_PATH = 'C:\\Users\\10341\\.lmstudio\\models\\unsloth\\Qwen3.5-9B-GGUF\\Qwen3.5-9B-Q3_K_S.gguf'
+
+def _ensure_llama_server():
+    """
+    检测 1235 端口是否有 llama-server 在运行。
+    如果没有，自动启动一个。
+    """
+    import subprocess
+    
+    # 检测 1235 是否活着
+    try:
+        req = urllib.request.Request('http://127.0.0.1:1235/health', method='GET')
+        resp = urllib.request.urlopen(req, timeout=2)
+        status = json.loads(resp.read().decode('utf-8'))
+        if status.get('status') == 'ok':
+            logger.info('llama-server already running on port 1235')
+            return True
+    except Exception:
+        pass
+    
+    # 检测 1235 端口是否被占用（非 llama-server）
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1)
+        result = s.connect_ex(('127.0.0.1', 1235))
+        s.close()
+        if result == 0:
+            logger.warning('Port 1235 in use by another process (not llama-server)')
+            return False
+    except Exception:
+        pass
+    
+    # 检查可执行文件是否存在
+    if not os.path.exists(LLAMA_SERVER_PATH):
+        logger.warning(f'llama-server not found at {LLAMA_SERVER_PATH}')
+        return False
+    
+    if not os.path.exists(LLAMA_MODEL_PATH):
+        logger.warning(f'Model not found at {LLAMA_MODEL_PATH}')
+        return False
+    
+    # 自动启动
+    import subprocess
+    args = [
+        LLAMA_SERVER_PATH,
+        '-m', LLAMA_MODEL_PATH,
+        '--host', '127.0.0.1',
+        '--port', '1235',
+        '-t', '8',
+        '-ngl', '99',
+        '-c', '32768',
+        '--temp', '0.05',
+        '-s', '42',
+        '--flash-attn', 'on',
+        '--reasoning', 'off',
+        '-ctk', 'q8_0',
+        '-ctv', 'q8_0',
+        '--no-warmup'
+    ]
+    
+    logger.info('Starting llama-server automatically...')
+    try:
+        proc = subprocess.Popen(
+            args,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+        )
+        logger.info(f'llama-server started (PID={proc.pid}), waiting for ready...')
+        
+        # 等待最多 30 秒直到服务就绪
+        for i in range(30):
+            time.sleep(1)
+            try:
+                req = urllib.request.Request('http://127.0.0.1:1235/health', method='GET')
+                resp = urllib.request.urlopen(req, timeout=2)
+                status = json.loads(resp.read().decode('utf-8'))
+                if status.get('status') == 'ok':
+                    logger.info(f'llama-server ready after {i+1}s')
+                    return True
+            except Exception:
+                pass
+        
+        logger.warning('llama-server started but not ready after 30s')
+        return False
+    except Exception as e:
+        logger.error(f'Failed to start llama-server: {e}')
+        return False
+
+# ============================================================
 # 启动
 # ============================================================
 def run_production():
+    # 自动启动 llama-server
+    _ensure_llama_server()
+    
     try:
         from waitress import serve
         provider, _ = load_provider_state()
