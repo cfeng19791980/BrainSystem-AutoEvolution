@@ -1928,7 +1928,7 @@ FLOW_TEMPLATES = {
 LLM_DECISION_ENABLED = False  # 首次调用时探测
 LLM_BASE_URL = 'http://127.0.0.1:1235/v1/chat/completions'
 LLM_DETECT_URL = 'http://127.0.0.1:1235/v1/models'
-LLM_DECISION_MODEL = 'Qwen3.5-9B-Q3_K_S.gguf'
+LLM_DECISION_MODEL = 'Qwen3.5-9B-Q4_K_M.gguf'
 LLM_API_KEY = 'not-needed'  # llama.cpp 不需要 key
 
 LLM_DECISION_ENABLED = False
@@ -3290,7 +3290,7 @@ def tool_list_dir():
 # 自动启动 llama-server（如果 1235 端口没有服务）
 # ============================================================
 LLAMA_SERVER_PATH = 'E:\\llama_bin\\llama-server.exe'
-LLAMA_MODEL_PATH = 'C:\\Users\\10341\\.lmstudio\\models\\unsloth\\Qwen3.5-9B-GGUF\\Qwen3.5-9B-Q3_K_S.gguf'
+LLAMA_MODEL_PATH = 'C:\\Users\\10341\\.lmstudio\\models\\unsloth\\Qwen3.5-9B-GGUF\\Qwen3.5-9B-Q4_K_M.gguf'
 
 def _ensure_llama_server():
     """
