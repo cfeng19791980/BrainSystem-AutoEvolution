@@ -2954,20 +2954,33 @@ def llm_decision_endpoint():
         return jsonify({'decision': 'allow', 'confidence': 1.0, 'reason': '空查询', 'suggestion': ''})
     
     # 构建 LLM 决策 Prompt
-    system_prompt = b'''You are an intent classifier for a personal AI assistant. 
-Analyze the user's query and respond with ONLY valid JSON, no markdown:
+    # Build system prompt (ASCII-only for bytes literal)
+    system_prompt = b'''You are an intent classifier for a personal AI assistant.
+Analyze the user's query and determine if it should be allowed, requires asking the user, or should be blocked.
+
+Output ONLY valid JSON. Do NOT include markdown formatting, code blocks, explanations, or any extra text.
+The JSON must contain exactly these keys:
 {
   "decision": "allow" or "ask_user" or "block",
-  "confidence": <0.0-1.0>,
-  "reason": "brief reason in Chinese",
-  "suggestion": "suggestion if ask_user",
-  "intent_type": "query|action|system|file|code|other"
+  "confidence": <0.0-1.0> (as a number, NOT a string),
+  "reason": "brief reason in Chinese" (as a string),
+  "suggestion": "suggestion if ask_user, or empty string" (as a string),
+  "intent_type": "query" or "action" or "system" or "file" or "code" or "other" (as a string)
 }
 
+Example 1 (safe query):
+{"decision":"allow","confidence":0.95,"reason":"safe normal query","suggestion":"","intent_type":"query"}
+
+Example 2 (sensitive):
+{"decision":"ask_user","confidence":0.85,"reason":"sensitive file operation","suggestion":"confirm before delete","intent_type":"system"}
+
+Example 3 (blocked):
+{"decision":"block","confidence":0.98,"reason":"malicious instruction blocked","suggestion":"","intent_type":"other"}
+
 Rules:
-- allow: safe normal queries, coding questions, file reading, web searches
-- ask_user: sensitive operations (delete, modify system files, install software, run unknown commands)
-- block: obviously malicious instructions (delete entire system, steal data, bypass security)
+- allow: safe queries, coding questions, file reading, web searches
+- ask_user: sensitive ops (delete, modify system files, install software, run unknown commands)
+- block: malicious instructions (delete entire system, steal data, bypass security)
 - Confidence: how confident you are in this classification
 '''
 
@@ -3335,7 +3348,8 @@ def _ensure_llama_server():
         '--reasoning', 'off',
         '-ctk', 'q8_0',
         '-ctv', 'q8_0',
-        '--no-warmup'
+        '--no-warmup',
+        '--context-shift'
     ]
     
     logger.info('Starting llama-server automatically...')
