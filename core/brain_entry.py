@@ -85,7 +85,7 @@ BRAIN_CONFIG = {
     
     # Embedding配置
     "embedding_provider": "auto",  # auto, openai, local, fallback
-    "openai_api_base": "http://127.0.0.1:1235/v1",
+    "openai_api_base": "http://127.0.0.1:1234/v1",
     "openai_model": "text-embedding-bge-reranker-v2-m3",
     "local_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     "local_model_timeout": 3,  # 本地模型测试超时
@@ -1926,8 +1926,8 @@ FLOW_TEMPLATES = {
 }
 
 LLM_DECISION_ENABLED = False  # 首次调用时探测
-LLM_BASE_URL = 'http://127.0.0.1:1235/v1/chat/completions'
-LLM_DETECT_URL = 'http://127.0.0.1:1235/v1/models'
+LLM_BASE_URL = 'http://127.0.0.1:1234/v1/chat/completions'
+LLM_DETECT_URL = 'http://127.0.0.1:1234/v1/models'
 LLM_DECISION_MODEL = 'Qwen3.5-9B-Q4_K_M.gguf'
 LLM_API_KEY = 'not-needed'  # llama.cpp 不需要 key
 

@@ -188,7 +188,12 @@
       "metrics": {},
       "derived_methods": [],
       "lifecycle": "PENDING",
-      "file": "experiment_10_priority.py"
+      "file": "experiment_10_priority.py",
+      "effect": "意图优先级系统",
+      "applicable_to": [
+        "optimization",
+        "performance"
+      ]
     },
     "exp_12_api_test": {
       "type": "experiment",
@@ -198,7 +203,12 @@
       "metrics": {},
       "derived_methods": [],
       "lifecycle": "PENDING",
-      "file": "experiment_12_api_test.py"
+      "file": "experiment_12_api_test.py",
+      "effect": "真实API性能测试",
+      "applicable_to": [
+        "optimization",
+        "performance"
+      ]
     },
     "exp_1_cache": {
       "type": "experiment",
@@ -208,7 +218,12 @@
       "metrics": {},
       "derived_methods": [],
       "lifecycle": "VALID",
-      "file": "experiment_1_cache.py"
+      "file": "experiment_1_cache.py",
+      "effect": "添加LRU缓存到analyze_intent",
+      "applicable_to": [
+        "optimization",
+        "performance"
+      ]
     },
     "exp_2_bottleneck": {
       "type": "experiment",
@@ -218,7 +233,12 @@
       "metrics": {},
       "derived_methods": [],
       "lifecycle": "PENDING",
-      "file": "experiment_2_bottleneck.py"
+      "file": "experiment_2_bottleneck.py",
+      "effect": "分析性能瓶颈",
+      "applicable_to": [
+        "optimization",
+        "performance"
+      ]
     },
     "exp_3_deep": {
       "type": "experiment",
@@ -228,7 +248,12 @@
       "metrics": {},
       "derived_methods": [],
       "lifecycle": "PENDING",
-      "file": "experiment_3_deep.py"
+      "file": "experiment_3_deep.py",
+      "effect": "优化search_memory",
+      "applicable_to": [
+        "optimization",
+        "performance"
+      ]
     },
     "exp_5_cache": {
       "type": "experiment",
@@ -238,7 +263,12 @@
       "metrics": {},
       "derived_methods": [],
       "lifecycle": "VALID",
-      "file": "experiment_5_cache.py"
+      "file": "experiment_5_cache.py",
+      "effect": "实现embedding缓存",
+      "applicable_to": [
+        "optimization",
+        "performance"
+      ]
     },
     "exp_6_intent": {
       "type": "experiment",
@@ -248,7 +278,12 @@
       "metrics": {},
       "derived_methods": [],
       "lifecycle": "PENDING",
-      "file": "experiment_6_intent.py"
+      "file": "experiment_6_intent.py",
+      "effect": "分析意图识别准确率低的原因",
+      "applicable_to": [
+        "optimization",
+        "performance"
+      ]
     },
     "exp_7_brain": {
       "type": "experiment",
@@ -262,7 +297,12 @@
       },
       "derived_methods": [],
       "lifecycle": "PENDING",
-      "file": "experiment_7_brain.py"
+      "file": "experiment_7_brain.py",
+      "effect": "优化brain_command识别",
+      "applicable_to": [
+        "optimization",
+        "performance"
+      ]
     },
     "exp_8_evolution": {
       "type": "experiment",
@@ -280,7 +320,12 @@
       },
       "derived_methods": [],
       "lifecycle": "PENDING",
-      "file": "experiment_8_evolution.py"
+      "file": "experiment_8_evolution.py",
+      "effect": "分析剩余优化空间",
+      "applicable_to": [
+        "optimization",
+        "performance"
+      ]
     },
     "exp_9_result_cache": {
       "type": "experiment",
@@ -290,7 +335,12 @@
       "metrics": {},
       "derived_methods": [],
       "lifecycle": "VALID",
-      "file": "experiment_9_result_cache.py"
+      "file": "experiment_9_result_cache.py",
+      "effect": "结果缓存",
+      "applicable_to": [
+        "optimization",
+        "performance"
+      ]
     }
   },
   "edges": [
