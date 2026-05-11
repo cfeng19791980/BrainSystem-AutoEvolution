@@ -1,11 +1,15 @@
-// Brain Hook V9.3 - Sidecar 模式，通过 Gateway WebSocket 订阅 before_prompt_build 事件
+// Brain Hook V9.4 - Sidecar 模式，自动启动 brain_entry 进程
 // 这个文件由 sidecar 进程加载，拥有自己的 HTTP server
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 
 const BRAIN_PORT = 5002;
+const BRAIN_SCRIPT = path.join(process.env.USERPROFILE || 'C:\\Users\\10341', '.openclaw', 'workspace', 'BrainSystem-AutoEvolution', 'core', 'brain_entry.py');
 const LOG_FILE = path.join(process.env.USERPROFILE || 'C:\\Users\\10341', '.openclaw', 'logs', 'brain-hook.log');
+
+let brainProcess = null;
 
 function log(msg) {
   const ts = new Date().toISOString();
@@ -14,7 +18,55 @@ function log(msg) {
   try { fs.appendFileSync(LOG_FILE, line, 'utf-8'); } catch(e) {}
 }
 
-log('V9.3 Loading');
+function ensureBrainRunning() {
+  return new Promise((resolve) => {
+    // 先检查端口是否已监听
+    const check = http.request({ hostname: '127.0.0.1', port: BRAIN_PORT, path: '/health', method: 'GET', timeout: 2000 }, (res) => {
+      resolve(true);
+    });
+    check.on('error', () => {
+      // 端口未监听，需要启动
+      log('Brain Entry not running, starting...');
+      try {
+        brainProcess = spawn('python', [BRAIN_SCRIPT], {
+          detached: true,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          windowsHide: true
+        });
+        brainProcess.unref();
+        
+        let started = false;
+        const retry = () => {
+          const c = http.request({ hostname: '127.0.0.1', port: BRAIN_PORT, path: '/health', method: 'GET', timeout: 2000 }, (res) => {
+            started = true;
+            log('Brain Entry started successfully');
+            resolve(true);
+          });
+          c.on('error', () => {
+            if (!started) setTimeout(retry, 500);
+            else resolve(false);
+          });
+          c.end();
+        };
+        setTimeout(retry, 1000);
+        
+        // 45秒超时（需等待 llama-server 启动）
+        setTimeout(() => {
+          if (!started) {
+            log('Brain Entry start timeout after 45s');
+            resolve(false);
+          }
+        }, 45000);
+      } catch (e) {
+        log(`Brain Entry start failed: ${e.message}`);
+        resolve(false);
+      }
+    });
+    check.end();
+  });
+}
+
+log('V9.4 Loading');
 
 module.exports = {
   id: "brain-hook",
@@ -50,6 +102,9 @@ module.exports = {
       }
 
       try {
+        // 先确保 Brain Entry 在运行
+        await ensureBrainRunning();
+        
         log('Calling Brain /entry...');
         const result = await callBrainEntry(userContent.slice(0, 80000));
 
@@ -61,44 +116,22 @@ module.exports = {
           // and can access files through the Brain Tool API
           const toolDescription = `
 
-## 本地身份说明 (LOCAL IDENTITY NOTICE)
+## 身份说明 (LOCAL IDENTITY NOTICE)
 
-重要：你正在用户的本地机器上通过 LM Studio 运行（qwen3-vl 本地模型）。
-你是本地助手，不是云端 AI，具备以下本地文件访问能力：
-
-### 可用工具 (通过 Brain Tool API)
-
-当你需要读取文件或列出目录时，用户的后台系统（Brain）可以直接执行 JavaScript 代码
-或直接读取文件。你有以下方式获取本地文件：
-
-1. **run_javascript (Brain 内置)** - 通过 Brain 的 /tools/run_js 端点，
-   可以在本地 Deno 沙箱中执行 JavaScript/TypeScript 代码。
-   Deno 具有对 E:/, D:/, C:/Users/ 的只读访问权限。
-   示例代码：\`Deno.readTextFileSync("E:/some/file.txt")\`
-
-2. **read_file (Brain 内置)** - 通过 Brain 的 /tools/read_file 端点，
-   可以直接读取 E:/, D:/, C:/Users/ 路径下的文件。
-
-3. **list_dir (Brain 内置)** - 通过 Brain 的 /tools/list_dir 端点，
-   可以列出本地目录内容。
-
-### 注意事项
-- 你完全有能力访问用户的本地文件系统（E盘中包含 brain-system 等数据）。
-- 当用户请求访问本地文件时，直接使用 run_javascript 工具执行 Deno 代码。
-- 不要声称自己无法访问本地文件——你能，通过 run_javascript 工具。
-- 所有操作在用户的本地机器上执行，不会发送数据到云端。
+📌重要：你是我的专属深度协作伙伴，具备独立逻辑思辨、方案审视、查漏补缺、优化迭代能力。
 `;
           // 编码规范
           const codingRules = `
 
 ## 编码规范 (请严格遵守)
-一、所有代码必须设置UTF8编码
-二、先思考再编写代码，明确用户需求，避免自作假设。
-三、简单优先，只实现当前任务所需的最少代码，避免过度工程化。例如 200 行代码能用 50 行完成，就应简化。
-四、外科手术式修改，只动必须动的部分，不顺手改动相邻代码或格式，也不重构未损坏的功能。每行修改都应可追溯到用户请求。
-五、目标驱动执行，将任务拆解为明确可验证的目标，例如"添加验证"应转化为"先为无效输入写测试，然后让它们通过"。
-六、先备份后修改可回滚，做好版本管理。
-七、编码测试完成后，清理临时文件（如测试脚本/修复脚本等），保持文件架构整洁。
+🔤所有代码必须设置UTF8编码，任务完成必须将经验、教训、项目readme导入brain 向量库（e:\data\.brain_vectors.db）
+🤔先思考再编写代码，明确用户需求，避免自作假设。
+⚡简单优先，只实现当前任务所需的最少代码，避免过度工程化。
+🎯 精准修改，只动必须动的部分，不重构未损坏的功能。
+📋目标驱动执行，将任务拆解为明确可验证的目标。
+💾先备份后修改可回滚，写完代码必测试，做好版本管理。重要修改升级使用gh推送代码库
+🧹编码测试完成后，清理临时文件（如测试脚本/修复脚本等），保持文件架构整洁。
+🛠️必用工具：读取文件-code_reader，代码执行-exec_thyton，内容比较code_diff，批量替换file_patch
 `;
           const enhancedContent = result.processed_content + toolDescription + codingRules;
           return {
@@ -116,7 +149,7 @@ module.exports = {
       log('Hook completed without injection');
     });
 
-    log('V9.3 Ready');
+    log('V9.4 Ready');
   }
 };
 
